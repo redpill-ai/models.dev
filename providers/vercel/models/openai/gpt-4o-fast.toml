@@ -1,0 +1,11 @@
+base_model = "openai/gpt-4o"
+name = "GPT-4o (Fast)"
+description = "Compact GPT model for low-latency assistance and high-volume workloads"
+
+[cost]
+input = 4.25
+output = 17
+cache_read = 2.125
+
+[limit]
+input = 111_616

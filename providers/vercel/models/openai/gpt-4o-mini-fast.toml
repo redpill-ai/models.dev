@@ -1,0 +1,12 @@
+base_model = "openai/gpt-4o-mini"
+name = "GPT-4o mini (Fast)"
+description = "Compact GPT model for low-latency assistance and high-volume workloads"
+family = "o-mini"
+
+[cost]
+input = 0.25
+output = 1
+cache_read = 0.125
+
+[limit]
+input = 111_616

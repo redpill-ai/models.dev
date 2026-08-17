@@ -1,0 +1,12 @@
+base_model = "openai/o3"
+name = "o3 (Fast)"
+description = "O-series reasoning model for hard analysis, math, coding, and planning"
+reasoning_options = []
+
+[cost]
+input = 3.5
+output = 14
+cache_read = 0.875
+
+[limit]
+input = 100_000

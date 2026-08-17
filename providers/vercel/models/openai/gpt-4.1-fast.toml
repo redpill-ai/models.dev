@@ -1,0 +1,11 @@
+base_model = "openai/gpt-4.1"
+name = "GPT-4.1 (Fast)"
+description = "Compact GPT model for low-latency assistance and high-volume workloads"
+
+[cost]
+input = 3.5
+output = 14
+cache_read = 0.875
+
+[limit]
+input = 1_014_808

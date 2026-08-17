@@ -1,0 +1,13 @@
+base_model = "openai/gpt-4.1-mini"
+name = "GPT-4.1 mini (Fast)"
+description = "Compact GPT model for low-latency assistance and high-volume workloads"
+family = "gpt"
+release_date = "2025-05-14"
+
+[cost]
+input = 0.7
+output = 2.8
+cache_read = 0.175
+
+[limit]
+input = 1_014_808
