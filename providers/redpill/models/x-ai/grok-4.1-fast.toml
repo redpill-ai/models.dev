@@ -1,0 +1,7 @@
+# Fixed-reasoning route; RedPill exposes no caller control.
+base_model = "xai/grok-4.1-fast-reasoning"
+reasoning_options = []
+
+[cost]
+input = 0.2
+output = 0.5

@@ -1,0 +1,16 @@
+# No caller control: native Anthropic candidates reject public reasoning.
+# Live route-family check (Opus 4.6, 2026-08-18): reasoning.enabled returned HTTP 400 "has no adapter".
+# Source: https://github.com/Dstack-TEE/private-ai-gateway/blob/30296dd9a0dbaf06e520f2ed1be01eab75c3c287/src/middleware/request_transform.rs#L251-L276
+base_model = "anthropic/claude-sonnet-4-6"
+structured_output = true
+reasoning_options = []
+
+[cost]
+input = 3
+output = 15
+
+[limit]
+output = 128_000
+
+[modalities]
+input = ["text", "image"]
