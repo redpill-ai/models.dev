@@ -248,6 +248,61 @@ OVHcloud AI Endpoints is implemented in `packages/core/src/sync/providers/ovhclo
 - `attachment` is derived from non-text `input_modalities`, and `open_weights` from the presence of `hugging_face_id`.
 - `release_date`/`last_updated` default to the catalog `created` timestamp but preserve any existing hand-authored dates; `knowledge`, `family`, `status`, `interleaved`, and `limit.input` are preserved when present.
 
+## Phala Notes
+
+Phala is implemented in `packages/core/src/sync/providers/phala.ts` and shares
+the ACI catalog parser and translator in `packages/core/src/sync/providers/aci.ts`.
+
+- Source endpoints: `https://inference.phala.com/v1/models` for chat models and
+  `https://inference.phala.com/v1/embeddings/models` for embedding models.
+- Phala is a separate API product with its own base URL, API keys, billing entry,
+  and documentation. Its catalog currently matches the TEE-filtered subset of
+  RedPill, but synchronization reads Phala's endpoints as the authoritative contract.
+- Prices are public per-token USD values and use the shared conversion to
+  per-1M-token catalog prices.
+- Phala is a multi-model provider, not the lab for hosted upstream models. Known
+  canonical models use `base_model`. The two `phala/*-uncensored` routes resolve to
+  their exact deployed FP8 checkpoints under `models/lamianlbe/` and
+  `models/cloud19/`; the upstream checkpoints are recorded only as provenance.
+- Synchronization is existing-only: new API IDs are neither written automatically
+  nor reported as missing. Add canonical metadata and audit provider controls before
+  admitting a new model. Existing entries still receive authoritative prices,
+  limits, capabilities, modalities, and catalog membership from the API.
+- `reasoning_options` is always hand-authored. The public catalog identifies
+  reasoning-capable models but does not describe exact toggle, effort, or budget
+  controls.
+
+## RedPill Notes
+
+RedPill is implemented in `packages/core/src/sync/providers/redpill.ts`.
+
+- Source endpoints: `https://api.redpill.ai/v1/models` for chat models and
+  `https://api.redpill.ai/v1/embeddings/models` for embedding models.
+- The two catalogs are fetched together, merged by exact model ID, and rejected if an
+  ID appears more than once. Their combined membership is authoritative, so local
+  RedPill entries missing from both responses are removed.
+- Prices are public per-token USD values and are converted to per-1M-token catalog
+  prices. A zero `input_cache_write` is treated as missing because the API response
+  schema uses it as the default when no write-cache price is configured. Context and
+  modalities are provider-specific overrides on canonical `base_model` metadata.
+  Capability fields override the base only when the catalog publishes non-empty
+  capability metadata; empty default arrays inherit the base and existing authored
+  controls.
+- A `max_output_length` equal to `context_length` is a control-plane fallback, not an
+  authoritative output limit. Embedding output limits always inherit canonical vector
+  dimensions rather than using this fallback value.
+- Synchronization is existing-only: new API IDs are neither written automatically
+  nor reported as missing. Add canonical metadata and audit provider controls before
+  admitting a new model. Existing entries still receive authoritative prices,
+  limits, capabilities, modalities, and combined catalog membership from the API;
+  entries absent from both catalogs are removed.
+- Existing hand-authored standalone entries are retained and updated. The two
+  `phala/*` checkpoint aliases resolve to shared model metadata, so future syncs
+  retain override-only provider entries.
+- `reasoning_options` is always hand-authored. The public catalogs identify
+  reasoning-capable models but do not describe exact toggle, effort, or budget
+  controls, so synchronization never infers or replaces those controls.
+
 ## DigitalOcean Notes
 
 - DigitalOcean is implemented in `packages/core/src/sync/providers/digitalocean.ts`.

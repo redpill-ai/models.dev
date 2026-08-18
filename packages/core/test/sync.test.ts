@@ -75,6 +75,13 @@ import {
 import { openai, parseOpenAIModels } from "../src/sync/providers/openai.js";
 import { ofox } from "../src/sync/providers/ofox.js";
 import { pioneer } from "../src/sync/providers/pioneer.js";
+import {
+  buildRedPillModel,
+  parseRedPillModels,
+  redpill,
+  resolveRedPillBaseModel,
+  type RedPillModel,
+} from "../src/sync/providers/redpill.js";
 import { google, shouldTrackGoogleModel } from "../src/sync/providers/google.js";
 import { buildTinfoilModel, tinfoil, type TinfoilModel } from "../src/sync/providers/tinfoil.js";
 import { resolveVeniceBaseModel } from "../src/sync/providers/venice.js";
@@ -197,6 +204,136 @@ function readyInceptronModel(overrides: Partial<InceptronModel> = {}): ReadyInce
     data: [inceptronModel(overrides)],
   })[0]!;
 }
+
+function redPillModel(overrides: Partial<RedPillModel> = {}): RedPillModel {
+  return {
+    id: "openai/gpt-5",
+    name: "OpenAI: GPT-5",
+    created: Date.parse("2025-08-07T00:00:00Z") / 1_000,
+    input_modalities: ["text", "image", "file"],
+    output_modalities: ["text"],
+    context_length: 400_000,
+    max_output_length: 400_000,
+    pricing: {
+      prompt: "0.00000125",
+      completion: "0.00001",
+      input_cache_read: "0.000000125",
+    },
+    supported_parameters: ["reasoning", "tools", "structured_outputs"],
+    supported_sampling_parameters: ["max_tokens"],
+    supported_features: ["reasoning", "tools", "structured_outputs"],
+    is_tee: false,
+    providers: ["openai"],
+    catalog: "chat",
+    ...overrides,
+  };
+}
+
+test("merges RedPill chat and embedding catalogs and rejects duplicate IDs", () => {
+  const source = redPillModel();
+  expect(parseRedPillModels({
+    chat: { data: [source] },
+    embeddings: { data: [] },
+  })).toEqual([{ ...source, catalog: "chat" }]);
+
+  expect(() => parseRedPillModels({
+    chat: { data: [source] },
+    embeddings: { data: [source] },
+  })).toThrow("Duplicate RedPill model ID: openai/gpt-5");
+
+  expect(() => parseRedPillModels({
+    chat: { data: [] },
+    embeddings: { data: [] },
+  })).toThrow("RedPill catalog returned no models");
+
+  expect(() => parseRedPillModels({
+    chat: { data: [redPillModel({ id: "../outside" })] },
+    embeddings: { data: [] },
+  })).toThrow("Model ID must be a safe relative path");
+});
+
+test("resolves RedPill provider-specific model identities", () => {
+  expect(resolveRedPillBaseModel("phala/gemma-4-26b-a4b-uncensored"))
+    .toBe("cloud19/gemma-4-26b-a4b-it-heretic-fp8-static");
+  expect(resolveRedPillBaseModel("phala/qwen3.6-35b-a3b-uncensored"))
+    .toBe("lamianlbe/qwen3.6-35b-a3b-uncensored-hauhaucs-aggressive-fp8");
+  expect(resolveRedPillBaseModel("x-ai/grok-4.1-fast"))
+    .toBe("xai/grok-4.1-fast-reasoning");
+});
+
+test("builds RedPill overrides with per-million pricing and ignores fallback output limits", () => {
+  const existing: ExistingModel = {
+    base_model: "openai/gpt-5",
+    reasoning_options: [{
+      type: "effort",
+      values: ["minimal", "low", "medium", "high"],
+    }],
+  };
+  expect(buildRedPillModel(redPillModel(), existing)).toMatchObject({
+    base_model: "openai/gpt-5",
+    reasoning_options: existing.reasoning_options,
+    cost: { input: 1.25, output: 10, cache_read: 0.125 },
+    modalities: { input: ["text", "image", "pdf"] },
+  });
+  expect(buildRedPillModel(redPillModel(), existing)).not.toHaveProperty("limit");
+  expect(buildRedPillModel(redPillModel({
+    id: "unknown/new-model",
+    max_output_length: 64_000,
+  }), undefined)).toBeUndefined();
+});
+
+test("keeps RedPill reasoning controls authored and reviews new provider entries", () => {
+  expect(buildRedPillModel(redPillModel(), { base_model: "openai/gpt-5" }))
+    .not.toHaveProperty("reasoning_options");
+  expect(redpill.skipCreates).toBe(true);
+  expect(redpill.trackMissingModels).toBe(false);
+});
+
+test("inherits RedPill embedding dimensions instead of using the context fallback", () => {
+  const model = buildRedPillModel(redPillModel({
+    id: "openai/text-embedding-3-large",
+    name: "OpenAI: Text Embedding 3 Large",
+    input_modalities: ["text", "embeddings"],
+    output_modalities: ["embeddings"],
+    context_length: 8_192,
+    max_output_length: 8_192,
+    pricing: { prompt: "0.00000013", completion: "0" },
+    supported_parameters: [],
+    supported_sampling_parameters: [],
+    supported_features: [],
+    catalog: "embedding",
+  }), undefined);
+
+  expect(model).toMatchObject({
+    base_model: "openai/text-embedding-3-large",
+    cost: { input: 0.13, output: 0 },
+    limit: { context: 8_192 },
+  });
+  expect(model).not.toHaveProperty("limit.output");
+});
+
+test("preserves inherited capabilities when RedPill omits capability metadata", () => {
+  const model = buildRedPillModel(redPillModel({
+    pricing: {
+      prompt: "0.00000125",
+      completion: "0.00001",
+      input_cache_write: "0",
+    },
+    supported_parameters: [],
+    supported_sampling_parameters: [],
+    supported_features: [],
+  }), undefined);
+
+  expect(model).toMatchObject({
+    base_model: "openai/gpt-5",
+    cost: { input: 1.25, output: 10 },
+  });
+  expect(model).not.toHaveProperty("cost.cache_write");
+  expect(model).not.toHaveProperty("reasoning");
+  expect(model).not.toHaveProperty("temperature");
+  expect(model).not.toHaveProperty("tool_call");
+  expect(model).not.toHaveProperty("structured_output");
+});
 
 test("builds current Inceptron models from explicit base metadata", () => {
   const models = parseInceptronModels({

@@ -28,7 +28,9 @@ import { openai } from "./providers/openai.js";
 import { ofox } from "./providers/ofox.js";
 import { openrouter } from "./providers/openrouter.js";
 import { ovhcloud } from "./providers/ovhcloud.js";
+import { phala } from "./providers/phala.js";
 import { pioneer } from "./providers/pioneer.js";
+import { redpill } from "./providers/redpill.js";
 import { requesty } from "./providers/requesty.js";
 import { tinfoil } from "./providers/tinfoil.js";
 import { vercel } from "./providers/vercel.js";
@@ -137,7 +139,9 @@ export const providers: {
   openai: SyncProvider<any>;
   openrouter: SyncProvider<any>;
   ovhcloud: SyncProvider<any>;
+  phala: SyncProvider<any>;
   pioneer: SyncProvider<any>;
+  redpill: SyncProvider<any>;
   requesty: SyncProvider<any>;
   tinfoil: SyncProvider<any>;
   vercel: SyncProvider<any>;
@@ -168,7 +172,9 @@ export const providers: {
   openai,
   openrouter,
   ovhcloud,
+  phala,
   pioneer,
+  redpill,
   requesty,
   tinfoil,
   vercel,
@@ -191,6 +197,8 @@ export const groups = {
     "ofox",
     "requesty",
     "openrouter",
+    "phala",
+    "redpill",
     "vercel",
   ],
   cloudflare: ["cloudflare-workers-ai"],
